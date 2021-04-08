@@ -158,6 +158,8 @@ var game_state = 'loading';
 var player = null;
 var ball = null;
 
+var bricks = [];
+
 var bound_x = 50;
 var bound_y = 50;
 var bound_width = 400;
@@ -170,7 +172,28 @@ function gotoLevel()
 		player.x,
 		player.y - 64
 	);
+	
+	setBricks(0);
+	
 	game_state = 'game';
+}
+
+function setBricks(level)
+{
+	switch (level)
+	{
+		case 0:
+		{
+			for (var i = 0; i < 6; i ++)
+			{
+				for (var j = 0; j < 7; j ++)
+				{
+					setBrick(['brick1h'], 58 + 32 + i * 64, 100 + j * 32);
+				}
+			}
+		}
+		break;
+	}
 }
 
 
@@ -180,8 +203,8 @@ function CreatePlayer()
 	this.x = surface.width * 0.5;
 	this.y = surface.height * 0.85;
 	
-	this.half_width = 32;
-	this.half_height = 10;
+	this.half_width = 24;
+	this.half_height = 8;
 	
 	this.type = 'player';
 	
@@ -226,9 +249,12 @@ function CreateBall(x, y)
 	this.x = x;
 	this.y = y;
 	
+	this.prevx = x;
+	this.prevy = y;
+	
 	this.angle = d90 + choose([-1, 1]) * d45;
 	
-	this.speed = 6;
+	this.speed = 5;
 	
 	this.addx = Math.cos(this.angle) * this.speed;
 	this.addy = -Math.sin(this.angle) * this.speed;
@@ -256,9 +282,6 @@ function CreateBall(x, y)
 	
 	this.update = () =>
 	{
-		this.x += this.addx;
-		this.y += this.addy;
-		
 		// Bound Collision
 		if (
 			this.x - this.half_width < bound_x ||
@@ -290,6 +313,65 @@ function CreateBall(x, y)
 			
 			this.y = player.y - player.half_height - this.half_height;
 		}
+		
+		// Bricks Collision
+		bricks.forEach(
+			(item) =>
+			{
+				if (
+					collide(
+						this,
+						item,
+						this.addx,
+						this.addy
+					)
+				)
+				{
+					var h = collide(
+						this,
+						item,
+						this.addx,
+						0
+					);
+					
+					var v = collide(
+						this,
+						item,
+						0,
+						this.addy
+					);
+					
+					/*
+					if (h != v)
+					{
+						this.addx *= -1;
+						this.addy *= -1;
+					}
+					*/
+					
+					if (h)
+					{
+						this.addx *= -1;
+					}
+					
+					if (v)
+					{
+						this.addy *= -1;
+					}
+					
+					item.hp --;
+					
+					this.x = this.prevx;
+					this.y = this.prevy;
+				}
+			}
+		);
+		
+		this.x += this.addx;
+		this.y += this.addy;
+		
+		this.prevx = this.x;
+		this.prevy = this.y;
 	};
 	
 	this.draw = () =>
@@ -312,17 +394,72 @@ function CreateBall(x, y)
 	};
 }
 
+// Bricks
+function setBrick(
+	brick,
+	x,
+	y
+)
+{
+	bricks.push(
+		new CreateBrick(
+			x,
+			y,
+			brick
+		)
+	);
+}
+
 function CreateBrick(
 	x,
 	y,
-	img
+	imgs
 )
 {
 	this.x = x;
 	this.y = y;
 	
-	this.half_width = tex[img].width * 0.5;
-	this.half_height = tex[img].height * 0.5;
+	this.imgs = imgs;
+	
+	this.hp = imgs.length;
+	
+	this.half_width = tex[this.imgs[0]].width * 0.5;
+	this.half_height = tex[this.imgs[0]].height * 0.5;
+	
+	
+	this.update = () =>
+	{
+		this.half_width = tex[this.imgs[0]].width * 0.5;
+		this.half_height = tex[this.imgs[0]].height * 0.5;
+		
+		if (this.hp <= 0)
+		{
+			return 1;
+		}
+		
+		return 0;
+	};
+	
+	this.draw = () =>
+	{
+		context.save();
+		
+		context.translate(
+			this.x,
+			this.y
+		);
+		
+		if (this.hp > 0)
+		{
+			context.drawImage(
+				tex[this.imgs[this.hp - 1]],
+				-this.half_width,
+				-this.half_height
+			);
+		}
+		
+		context.restore();
+	};
 }
 
 
@@ -332,6 +469,22 @@ function update()
 	player.update();
 	
 	ball.update();
+	
+	bricks.forEach(
+		(item) =>
+		{
+			switch (item.update())
+			{
+				case 1:
+				{
+					let num = bricks.indexOf(item);
+					delete bricks[num];
+					bricks.splice(num, 1);
+				}
+				break;
+			}
+		}
+	);
 }
 
 
@@ -382,11 +535,19 @@ function paint()
 				bound_height
 			);
 			
-			// player
-			player.draw();
+			// bricks
+			bricks.forEach(
+				(item) =>
+				{
+					item.draw();
+				}
+			);
 			
 			// ball
 			ball.draw();
+			
+			// player
+			player.draw();
 		}
 		break
 	}
