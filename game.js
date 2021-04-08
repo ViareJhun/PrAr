@@ -39,7 +39,13 @@ var tex = [];
 function loadTextures()
 {
 	tex_path['ball'] = 'img/ball.png';
+	
 	tex_path['brick1h'] = 'img/brick1h.png';
+	
+	tex_path['back1'] = 'img/back1.png';
+	tex_path['tori1'] = 'img/tori1.png';
+	tex_path['tori2'] = 'img/tori2.png';
+	tex_path['tori3'] = 'img/tori3.png';
 	
 	Object.keys(tex_path).forEach(
 		(key) =>
@@ -252,15 +258,17 @@ function CreateBall(x, y)
 	this.prevx = x;
 	this.prevy = y;
 	
-	this.angle = d90 + choose([-1, 1]) * d45;
+	this.dir = d90 + choose([-1, 1]) * d45;
+	
+	this.angle = Math.random() * d360;
 	
 	this.speed = 5;
 	
-	this.addx = Math.cos(this.angle) * this.speed;
-	this.addy = -Math.sin(this.angle) * this.speed;
+	this.addx = Math.cos(this.dir) * this.speed;
+	this.addy = -Math.sin(this.dir) * this.speed;
 	
-	this.half_width = 8;
-	this.half_height = 8;
+	this.half_width = 16;
+	this.half_height = 16;
 	
 	
 	this.checkPlace = (x, y) =>
@@ -282,6 +290,8 @@ function CreateBall(x, y)
 	
 	this.update = () =>
 	{
+		this.angle += 0.1;
+		
 		// Bound Collision
 		if (
 			this.x - this.half_width < bound_x ||
@@ -382,12 +392,12 @@ function CreateBall(x, y)
 			this.y
 		);
 		
-		context.fillStyle = '#FFFFFF';
-		context.fillRect(
+		context.rotate(this.angle);
+		
+		context.drawImage(
+			tex['ball'],
 			-this.half_width,
-			-this.half_height,
-			this.half_width * 2,
-			this.half_height * 2
+			-this.half_height
 		);
 		
 		context.restore();
@@ -526,7 +536,31 @@ function paint()
 				surface.height
 			);
 			
+			// back
+			context.drawImage(
+				tex['back1'],
+				bound_x,
+				bound_y
+			);
+			
+			context.drawImage(
+				tex['tori1'],
+				0,
+				0
+			);
+			context.drawImage(
+				tex['tori2'],
+				bound_x + bound_width,
+				0
+			);
+			context.drawImage(
+				tex['tori3'],
+				0,
+				0
+			);
+			
 			// bounds
+			/*
 			context.strokeStyle = '#FFFFFF';
 			context.strokeRect(
 				bound_x,
@@ -534,6 +568,7 @@ function paint()
 				bound_width,
 				bound_height
 			);
+			*/
 			
 			// bricks
 			bricks.forEach(
